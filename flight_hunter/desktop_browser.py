@@ -1,14 +1,30 @@
 """Optional desktop browser for Flight Hunter AI.
 
-The browser is a user-operated Qt WebEngine window. It does not inspect page
-DOM, call private endpoints, automate searches, or extract third-party fares.
+This is a user-operated browser. It does not inspect page DOM, call private
+endpoints, automate searches, or extract third-party fares.
 """
 from __future__ import annotations
 
-from .browser_utils import normalize_browser_url
-from .sources import SOURCES
+from PySide6.QtCore import QUrl
+from PySide6.QtGui import QAction, QKeySequence
+from PySide6.QtWidgets import (
+    QApplication,
+    QLabel,
+    QLineEdit,
+    QMainWindow,
+    QMessageBox,
+    QPushButton,
+    QTabWidget,
+    QToolBar,
+    QVBoxLayout,
+    QWidget,
+)
+from PySide6.QtWebEngineCore import QWebEnginePage, QWebEngineSettings
+from PySide6.QtWebEngineWidgets import QWebEngineView
 
-HOME_HTML = <!doctype html>
+from .browser_utils import normalize_browser_url
+
+HOME_HTML = """<!doctype html>
 <html lang="ar" dir="rtl">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
@@ -31,6 +47,7 @@ small{color:#607487}.notice{background:#fff7e6;padding:14px;border-radius:10px;m
 <div class="notice"><b>تنبيه مهم:</b> المتصفح مخصص للتصفح اليدوي فقط. لا يجمع التطبيق الأسعار من الصفحات ولا يقرأ محتواها آلياً ولا يستدعي واجهات داخلية. استخدم المواقع وفق شروطها، وأدخل عروض الأسعار المسموح باستخدامها في شاشة المقارنة داخل Flight Hunter AI.</div>
 </main></body></html>
 """
+
 
 class BrowserPage(QWebEnginePage):
     def __init__(self, profile, tab_widget: QTabWidget, parent=None):
@@ -131,12 +148,10 @@ class BrowserWindow(QMainWindow):
         view = BrowserView(self.tabs)
         index = self.tabs.addTab(view, "Flight Hunter AI")
         self.tabs.setCurrentIndex(index)
-        if home:
+        if home or not url:
             view.setHtml(HOME_HTML, QUrl("https://flighthunter.local/"))
-        elif url:
-            view.setUrl(QUrl(url))
         else:
-            view.setHtml(HOME_HTML, QUrl("https://flighthunter.local/"))
+            view.setUrl(QUrl(url))
         return view
 
     def current_view(self) -> BrowserView | None:
