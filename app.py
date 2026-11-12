@@ -120,12 +120,12 @@ if st.session_state.get("search_submitted"):
     st.markdown('<div class="section-title">مقارنة الأسعار الفعلية</div>', unsafe_allow_html=True)
     st.write("ارفع ملف CSV لعروض أسعار حصلت عليها من مصدر يسمح صراحةً بإعادة استخدامها. لا يجمع التطبيق أسعار Wego أو Wingie آلياً؛ شروطهما تمنع الاستعلامات أو جمع الأسعار آلياً.")
     with st.expander("صيغة ملف الأسعار المطلوبة", expanded=False):
-        st.code("provider,airline,origin,destination,departure_at,arrival_at,cabin_class,price,currency,stops,duration_minutes,checked_at,baggage_summary,booking_url", language="text")
-        st.caption("الدرجات المقبولة: economy / premium economy / business / first أو المقابل العربي. رابط العرض، إن وجد، يجب أن يبدأ بـ HTTPS.")
+        st.code("provider,airline,origin,destination,departure_at,arrival_at,cabin_class,price,currency,stops,duration_minutes,checked_at,passengers,return_departure_at,baggage_summary,booking_url", language="text")
+        st.caption("الدرجات المقبولة: economy / premium economy / business / first أو المقابل العربي. يجب أن يطابق الملف تاريخ الرحلة وعدد المسافرين؛ وللذهاب والعودة أضف return_departure_at. رابط العرض HTTPS.")
     uploaded_fares = st.file_uploader("ارفع ملف أسعار CSV", type=["csv"], key="fare_csv")
     if uploaded_fares is not None:
         fare_records, fare_errors = parse_fare_csv(uploaded_fares.getvalue())
-        matching = [item for item in fare_records if item.origin == request.origin and item.destination == request.destination]
+        matching = [item for item in fare_records if item.origin == request.origin and item.destination == request.destination and item.departure_at[:10] == request.departure_date.isoformat() and item.passengers == request.adults + request.children and (request.return_date is None or item.return_departure_at[:10] == request.return_date.isoformat())]
         if fare_errors:
             with st.expander(f"ملاحظات التحقق ({len(fare_errors)})", expanded=False):
                 for message in fare_errors:
