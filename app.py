@@ -5,6 +5,7 @@ from pydantic import ValidationError
 
 from flight_hunter.airports import AIRPORTS, AIRPORT_LABELS
 from flight_hunter.models import FlightSearchRequest
+from flight_hunter.fare_results import fare_age_label, filter_fares, parse_fare_csv
 from flight_hunter.sources import SOURCES, build_google_flights_url, sources_by_category
 
 st.set_page_config(
@@ -113,8 +114,38 @@ if st.session_state.get("search_submitted"):
         date_text += " · عودة " + request.return_date.strftime("%d/%m/%Y")
     st.caption(f"{route} · {date_text} · {request.adults} بالغ · {request.children} طفل · العملة المفضلة: {request.currency}")
 
-    st.success("تم تجهيز روابط البحث. افتح المواقع التالية لمراجعة الأسعار والتوافر مباشرة.")
+    st.success("تم تجهيز البحث. جدول المقارنة يعرض فقط عروض الأسعار الفعلية التي تم تحميلها والتحقق من بياناتها.")
     st.link_button("ابحث عن هذه الرحلة في Google Flights", build_google_flights_url(request), type="primary", use_container_width=True)
+
+    st.markdown('<div class="section-title">مقارنة الأسعار الفعلية</div>', unsafe_allow_html=True)
+    st.write("ارفع ملف CSV لعروض أسعار حصلت عليها من مصدر يسمح صراحةً بإعادة استخدامها. لا يجمع التطبيق أسعار Wego أو Wingie آلياً؛ شروطهما تمنع الاستعلامات أو جمع الأسعار آلياً.")
+    with st.expander("صيغة ملف الأسعار المطلوبة", expanded=False):
+        st.code("provider,airline,origin,destination,departure_at,arrival_at,cabin_class,price,currency,stops,duration_minutes,checked_at,baggage_summary,booking_url", language="text")
+        st.caption("الدرجات المقبولة: economy / premium economy / business / first أو المقابل العربي. رابط العرض، إن وجد، يجب أن يبدأ بـ HTTPS.")
+    uploaded_fares = st.file_uploader("ارفع ملف أسعار CSV", type=["csv"], key="fare_csv")
+    if uploaded_fares is not None:
+        fare_records, fare_errors = parse_fare_csv(uploaded_fares.getvalue())
+        matching = [item for item in fare_records if item.origin == request.origin and item.destination == request.destination]
+        if fare_errors:
+            with st.expander(f"ملاحظات التحقق ({len(fare_errors)})", expanded=False):
+                for message in fare_errors:
+                    st.warning(message)
+        if not matching:
+            st.info("لا توجد عروض صالحة لهذا المسار في الملف. لم تتم إضافة أسعار تقديرية.")
+        else:
+            cabin = st.selectbox("درجة السفر", ["الكل", "اقتصادي", "اقتصادي ممتاز", "أعمال", "أولى"], key="fare_cabin")
+            currency_filter = st.selectbox("عملة السعر", sorted({item.currency for item in matching}), key="fare_currency")
+            direct_only = st.checkbox("الرحلات المباشرة فقط", value=False, key="fare_direct")
+            filtered = filter_fares(matching, origin=request.origin, destination=request.destination, cabin_class=None if cabin == "الكل" else cabin, currency=currency_filter, direct_only=direct_only)
+            if not filtered:
+                st.warning("لا توجد عروض تطابق الفلاتر الحالية.")
+            else:
+                st.metric("أقل سعر مطابق", f"{filtered[0].price:,.2f} {filtered[0].currency}")
+                rows = [{"شركة الطيران": x.airline, "المصدر": x.provider, "الدرجة": x.cabin_class, "السعر": x.price, "العملة": x.currency, "التوقفات": x.stops, "المدة (دقيقة)": x.duration_minutes, "الأمتعة": x.baggage_summary or "غير محدد", "آخر تحقق": x.checked_at, "حالة السعر": fare_age_label(x.checked_at), "رابط العرض": x.booking_url} for x in filtered]
+                st.dataframe(rows, use_container_width=True, hide_index=True)
+                st.caption("الترتيب من الأرخص إلى الأغلى. تحقق من السعر النهائي وشروط التذكرة لدى المصدر.")
+    else:
+        st.info("لا توجد أسعار فعلية محمّلة بعد. ارفع ملف CSV من مصدر مصرح به لبدء المقارنة.")
 
     for category, sources in sources_by_category().items():
         st.markdown(f"**{category}**")
@@ -125,7 +156,7 @@ if st.session_state.get("search_submitted"):
                 st.caption(source.note)
 
     st.info(
-        "هذه الروابط تفتح المواقع الأصلية. لا يسحب التطبيق أسعاراً حية من هذه المواقع في هذه النسخة، "
+        "هذه الروابط للبحث اليدوي. لا يجمع التطبيق أسعار Wego أو Wingie آلياً لأن شروطهما تمنع ذلك، "
         "ولا يعرض أسعاراً غير متحقق منها. قد تحتاج إلى إدخال تفاصيل الرحلة مرة أخرى في بعض المواقع."
     )
 else:
@@ -134,7 +165,7 @@ else:
         <div style="border:1px dashed rgba(128,128,128,.45);border-radius:16px;padding:1.6rem;text-align:center;background:rgba(128,128,128,.035);">
           <div style="font-size:2rem;">🌍</div>
           <h3>إلى أين تريد السفر؟</h3>
-          <p>أدخل تفاصيل رحلتك أعلاه، وسنجهز لك روابط البحث في شركات الطيران ومواقع المقارنة.</p>
+          <p>أدخل تفاصيل رحلتك، ثم ارفع عروض أسعار موثقة لمقارنتها وفرزها حسب الدرجة والسعر.</p>
         </div>
         """,
         unsafe_allow_html=True,
