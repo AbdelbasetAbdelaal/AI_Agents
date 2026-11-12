@@ -22,18 +22,31 @@ st.markdown(
     """
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap');
-    html, body, [class*="css"], [data-testid="stAppViewContainer"] {font-family:'Cairo',sans-serif;}
-    .block-container {max-width:1240px;padding-top:1.5rem;padding-bottom:3rem;}
-    [data-testid="stAppViewContainer"] {direction:rtl;}
-    [data-testid="stMarkdownContainer"],[data-testid="stWidgetLabel"] {text-align:right;}
-    div[data-testid="stForm"] {direction:rtl;border:1px solid rgba(128,128,128,.22);border-radius:18px;padding:1.3rem 1.4rem;background:rgba(128,128,128,.035);}
-    div[data-testid="stFormSubmitButton"] button {height:3rem;font-weight:700;border-radius:10px;}
-    .hero {padding:1.4rem 1.6rem;border-radius:18px;background:linear-gradient(115deg,#102b46,#176b83);color:white;margin-bottom:1.2rem;}
-    .hero h1 {font-size:2rem;margin:0 0 .35rem;color:white;}
-    .hero p {margin:0;opacity:.9;font-size:1rem;}
-    .section-title {font-size:1.1rem;font-weight:800;margin:.4rem 0 .8rem;}
-    .trust {padding:.9rem 1rem;border-radius:12px;background:rgba(30,130,100,.08);border:1px solid rgba(30,130,100,.2);font-size:.9rem;}
-    footer {visibility:hidden;}
+    :root {--fh-line:rgba(160,190,220,.18);}
+    html,body,[class*="css"],[data-testid="stAppViewContainer"]{font-family:'Cairo',sans-serif;}
+    [data-testid="stAppViewContainer"]{direction:rtl;background:radial-gradient(ellipse at 12% 0%,#1d526c 0%,transparent 34%),linear-gradient(145deg,#071523 0%,#0b1d30 52%,#102c40 100%);color:#eaf3ff;}
+    [data-testid="stHeader"]{background:rgba(7,21,35,.78);}
+    .block-container{max-width:1320px;padding-top:1.7rem;padding-bottom:3rem;}
+    [data-testid="stMarkdownContainer"],[data-testid="stWidgetLabel"]{text-align:right;}
+    [data-testid="stMarkdownContainer"] p,[data-testid="stCaptionContainer"]{color:#c0d0df;}
+    h1,h2,h3,h4{color:#f4f8ff!important;}
+    div[data-testid="stForm"]{direction:rtl;border:1px solid var(--fh-line);border-radius:22px;padding:1.4rem 1.5rem;background:linear-gradient(145deg,rgba(20,43,65,.96),rgba(12,30,48,.96));box-shadow:0 18px 50px rgba(0,0,0,.22);}
+    div[data-testid="stFormSubmitButton"] button,.stButton>button,[data-testid="stLinkButton"] a{height:3rem;font-weight:800;border-radius:12px;border:1px solid rgba(49,198,200,.35);background:linear-gradient(110deg,#176d88,#2879bd);color:#fff;transition:all .18s ease;}
+    div[data-testid="stFormSubmitButton"] button:hover,.stButton>button:hover,[data-testid="stLinkButton"] a:hover{border-color:#65e4df;transform:translateY(-1px);box-shadow:0 8px 24px rgba(20,170,190,.2);}
+    .hero{position:relative;overflow:hidden;padding:2rem 2.2rem;border-radius:24px;background:linear-gradient(112deg,#0b2037 0%,#124e68 55%,#137b83 100%);border:1px solid rgba(122,224,226,.28);color:white;margin-bottom:1.6rem;box-shadow:0 24px 60px rgba(0,0,0,.25);}
+    .hero:after{content:'✈';position:absolute;left:4%;top:4%;font-size:6rem;opacity:.10;transform:rotate(-12deg);}
+    .hero h1{font-size:2.25rem;margin:.4rem 0 .5rem;color:white;}
+    .hero p{margin:0;opacity:.9;font-size:1rem;color:#d6edf5;}
+    .section-title{font-size:1.18rem;font-weight:800;margin:1.15rem 0 .8rem;color:#73dfe0;}
+    .trust{padding:1rem 1.1rem;border-radius:14px;background:linear-gradient(110deg,rgba(25,128,111,.18),rgba(22,88,126,.2));border:1px solid rgba(73,207,181,.3);font-size:.9rem;color:#d7f7ed;}
+    [data-testid="stMetric"]{background:linear-gradient(145deg,rgba(24,53,78,.95),rgba(15,37,58,.95));border:1px solid var(--fh-line);padding:1rem 1.1rem;border-radius:16px;box-shadow:0 10px 25px rgba(0,0,0,.13);}
+    [data-testid="stMetricLabel"] p{color:#9fc5d7!important;}[data-testid="stMetricValue"]{color:#73e0dc!important;}
+    [data-testid="stDataFrame"],[data-testid="stTable"]{border:1px solid var(--fh-line);border-radius:14px;overflow:hidden;background:#10243a;}
+    [data-baseweb="input"],[data-baseweb="select"],[data-baseweb="textarea"]{background:#152f49;border-radius:10px;}
+    [data-baseweb="input"] input,[data-baseweb="select"] div{color:#edf6ff;}
+    [data-testid="stExpander"]{border:1px solid var(--fh-line);border-radius:14px;background:rgba(16,36,58,.72);}
+    hr{border-color:var(--fh-line);}footer{visibility:hidden;}
+    @media(max-width:700px){.hero{padding:1.35rem}.hero h1{font-size:1.6rem}.block-container{padding-left:1rem;padding-right:1rem}}
     </style>
     """,
     unsafe_allow_html=True,
@@ -150,8 +163,17 @@ if st.session_state.get("search_submitted"):
         offers = live_result.get("offers", [])
         st.caption(f"المصدر: {live_result['source']} · وقت التحقق: {live_result['checked_at']} · نوع الرحلة: {live_result['trip_type']}")
         if offers:
-            st.metric("عدد العروض المسترجعة", len(offers))
-            st.metric("أقل سعر ظهر في النتائج", f"{offers[0]['price']:,.0f} {offers[0]['currency']}")
+            metric_a, metric_b, metric_c = st.columns(3)
+            with metric_a:
+                st.metric("العروض المعروضة", len(offers))
+            with metric_b:
+                st.metric("شركات الطيران الظاهرة", len(live_result.get("unique_airlines", [])))
+            with metric_c:
+                st.metric("أقل سعر ظهر", f"{offers[0]['price']:,.0f} {offers[0]['currency']}")
+            airline_names = live_result.get("unique_airlines", [])
+            if airline_names:
+                st.markdown("**شركات الطيران التي ظهرت في النتائج**")
+                st.write(" · ".join(airline_names))
             rows = [{
                 "شركة الطيران": x["airline"],
                 "تاريخ ووقت الذهاب": x["departure_at"],
@@ -236,7 +258,7 @@ with st.expander("المصادر التي يغطيها التطبيق", expanded
     st.write("المطارات: مطارات مصر والسعودية، إضافة إلى وجهات دولية شائعة.")
 
 st.markdown(
-    '<div class="trust">🔎 الشفافية أولاً: لا نطلب حسابات أو مفاتيح API، ولا ننفذ حجزاً أو دفعاً. تحقق من السعر النهائي وشروط الأمتعة على الموقع الأصلي قبل اتخاذ قرارك.</div>',
+    '<div class="trust">🔎 الشفافية أولاً: مفتاح SerpApi مطلوب للبحث المباشر ويُدخل وقت التشغيل فقط. لا ننفذ حجزاً أو دفعاً. تحقق من السعر النهائي وشروط الأمتعة على الموقع الأصلي قبل اتخاذ قرارك.</div>',
     unsafe_allow_html=True,
 )
 st.divider()
