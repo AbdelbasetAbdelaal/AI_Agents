@@ -5,30 +5,10 @@ DOM, call private endpoints, automate searches, or extract third-party fares.
 """
 from __future__ import annotations
 
-from urllib.parse import urlparse
-
-from PySide6.QtCore import QUrl
-from PySide6.QtGui import QAction, QKeySequence
-from PySide6.QtWidgets import (
-    QApplication,
-    QHBoxLayout,
-    QLabel,
-    QLineEdit,
-    QMainWindow,
-    QMessageBox,
-    QPushButton,
-    QTabWidget,
-    QToolBar,
-    QVBoxLayout,
-    QWidget,
-)
-from PySide6.QtWebEngineCore import QWebEnginePage, QWebEngineSettings
-from PySide6.QtWebEngineWidgets import QWebEngineView
-
+from .browser_utils import normalize_browser_url
 from .sources import SOURCES
 
-HOME_HTML = """
-<!doctype html>
+HOME_HTML = <!doctype html>
 <html lang="ar" dir="rtl">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
@@ -51,21 +31,6 @@ small{color:#607487}.notice{background:#fff7e6;padding:14px;border-radius:10px;m
 <div class="notice"><b>تنبيه مهم:</b> المتصفح مخصص للتصفح اليدوي فقط. لا يجمع التطبيق الأسعار من الصفحات ولا يقرأ محتواها آلياً ولا يستدعي واجهات داخلية. استخدم المواقع وفق شروطها، وأدخل عروض الأسعار المسموح باستخدامها في شاشة المقارنة داخل Flight Hunter AI.</div>
 </main></body></html>
 """
-
-ALLOWED_SCHEMES = {"http", "https"}
-
-
-def normalize_browser_url(value: str) -> str:
-    """Normalize a user-entered URL and reject non-web schemes."""
-    value = value.strip()
-    if not value:
-        raise ValueError("أدخل رابط موقع أولاً.")
-    candidate = value if "://" in value else "https://" + value
-    parsed = urlparse(candidate)
-    if parsed.scheme.lower() not in ALLOWED_SCHEMES or not parsed.netloc:
-        raise ValueError("المسموح فتح روابط المواقع التي تبدأ بـ http أو https فقط.")
-    return candidate
-
 
 class BrowserPage(QWebEnginePage):
     def __init__(self, profile, tab_widget: QTabWidget, parent=None):
