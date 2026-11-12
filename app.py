@@ -97,7 +97,7 @@ with st.form("flight_search", border=True):
         if trip_type == "ذهاب وعودة":
             return_date = st.date_input(
                 "تاريخ العودة",
-                value=today + timedelta(days=21),
+                value=max(today + timedelta(days=21), departure_date + timedelta(days=7)),
                 min_value=departure_date,
                 format="DD/MM/YYYY",
             )
