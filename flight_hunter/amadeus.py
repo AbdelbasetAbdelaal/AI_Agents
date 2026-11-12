@@ -75,11 +75,12 @@ class AmadeusClient:
             "destinationLocationCode": request.destination.upper(),
             "departureDate": request.departure_date.isoformat(),
             "adults": request.adults,
-            "children": request.children,
             "currencyCode": request.currency.upper(),
             "travelClass": request.cabin_class,
             "max": max(1, min(max_results, 250)),
         }
+        if request.children > 0:
+            params["children"] = request.children
         if request.return_date:
             params["returnDate"] = request.return_date.isoformat()
 
