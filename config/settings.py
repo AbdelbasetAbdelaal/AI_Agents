@@ -7,7 +7,16 @@ class Settings(BaseSettings):
     app_currency: str = "EGP"
     amadeus_client_id: str = ""
     amadeus_client_secret: str = ""
+    amadeus_environment: str = "test"
     duffel_access_token: str = ""
+
+    @property
+    def amadeus_base_url(self) -> str:
+        return (
+            "https://api.amadeus.com"
+            if self.amadeus_environment.lower() == "production"
+            else "https://test.api.amadeus.com"
+        )
 
     model_config = SettingsConfigDict(
         env_file=".env",
