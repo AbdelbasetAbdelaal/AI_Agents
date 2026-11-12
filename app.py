@@ -88,7 +88,7 @@ with st.form("flight_search", border=True):
     with col_currency:
         currency = st.selectbox("العملة المفضلة عند المقارنة", ["EGP", "SAR", "USD"])
 
-    submitted = st.form_submit_button("اعرض مواقع البحث والمقارنة", type="primary", use_container_width=True)
+    submitted = st.form_submit_button("ابحث عن الرحلات وقارن الأسعار", type="primary", use_container_width=True)
 
 if submitted:
     try:
@@ -118,7 +118,7 @@ if st.session_state.get("search_submitted"):
 
     st.success("تم تجهيز البحث. جدول المقارنة يعرض فقط عروض الأسعار الفعلية التي تم تحميلها والتحقق من بياناتها.")
     st.markdown('<div class="section-title">الوكيل الذكي للبحث عن الرحلات</div>', unsafe_allow_html=True)
-    st.write("يبحث الوكيل الآن عبر Google Flights باستخدام SerpApi، ثم يرتب العروض حسب السعر ويعرض وقت التحقق ومعلومات الرحلة المتاحة.")
+    st.write("يبحث الوكيل دون استبعاد أي شركة طيران يعرضها Google Flights. في الذهاب والعودة يسترجع خيارات العودة المرتبطة برحلات الذهاب ثم يرتب الرحلات الكاملة حسب السعر.")
     api_key = st.text_input(
         "مفتاح SerpApi المجاني",
         value=os.getenv("SERPAPI_API_KEY", ""),
@@ -154,21 +154,25 @@ if st.session_state.get("search_submitted"):
             st.metric("أقل سعر ظهر في النتائج", f"{offers[0]['price']:,.0f} {offers[0]['currency']}")
             rows = [{
                 "شركة الطيران": x["airline"],
-                "المغادرة": x["departure_at"],
-                "الوصول": x["arrival_at"],
-                "السعر المعروض": x["price"],
+                "تاريخ ووقت الذهاب": x["departure_at"],
+                "تاريخ ووقت العودة": x.get("return_departure_at") or "—",
+                "وصول الذهاب": x["arrival_at"],
+                "وصول العودة": x.get("return_arrival_at") or "—",
+                "السعر الإجمالي المعروض": x["price"],
                 "العملة": x["currency"],
-                "التوقفات": x["stops"],
-                "المدة بالدقائق": x["duration_minutes"],
+                "توقفات الذهاب": x["stops"],
+                "توقفات العودة": x.get("return_stops") if x.get("return_stops") is not None else "—",
+                "مدة الذهاب (دقيقة)": x["duration_minutes"],
+                "مدة العودة (دقيقة)": x.get("return_duration_minutes") or "—",
                 "الأمتعة / الملاحظات": x["baggage_summary"],
                 "رقم الرحلة": x["flight_numbers"],
             } for x in offers]
             st.dataframe(rows, use_container_width=True, hide_index=True)
-            st.info("هذه نتائج بحث فعلية من Google Flights عبر SerpApi. أسعار الذهاب والعودة تمثل سعر الرحلة كما أعاده المصدر، لكن تفاصيل رحلة العودة قد تحتاج فتح خيار الرحلة للتحقق منها. الأمتعة وشروط السعر قد تختلف حسب شركة الطيران ومقدم الحجز؛ تحقق منها قبل الشراء.")
+            st.info("هذه عروض أعادها Google Flights عبر SerpApi وقت البحث. في الذهاب والعودة يعرض الجدول رحلتي الذهاب والعودة المرتبطتين والسعر كما أعاده المصدر. لم يتم استبعاد أي شركة طيران يعرضها المصدر، لكن هذا لا يضمن تغطية كل شركات السوق. تحقق من السعر النهائي والأمتعة لدى مقدم الحجز.")
             st.link_button("فتح Google Flights للتحقق والحجز", build_google_flights_url(request), use_container_width=True)
         else:
             st.warning("لم يُرجع المصدر عروضًا مطابقة. جرّب تاريخًا آخر أو تحقق من رموز المطارات.")
-    st.caption("الحصة المجانية المعلنة من SerpApi هي 250 عملية بحث شهريًا. قد يختلف الحد أو التوافر حسب حالة الحساب؛ راجع لوحة حسابك.")
+    st.caption("الحصة المجانية المعلنة من SerpApi هي 250 عملية بحث شهريًا. بحث الذهاب والعودة يستهلك عدة عمليات لاسترجاع خيارات العودة. راجع لوحة حسابك لمعرفة الحصة الفعلية.")
     st.link_button("ابحث عن هذه الرحلة في Google Flights", build_google_flights_url(request), type="primary", use_container_width=True)
 
     st.markdown('<div class="section-title">مقارنة الأسعار الفعلية</div>', unsafe_allow_html=True)
