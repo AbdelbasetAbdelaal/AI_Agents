@@ -62,4 +62,6 @@ def test_amadeus_search_uses_oauth_and_normalizes_offer():
     assert offers[0].booking_url is None
     assert calls[0].url.path.endswith("/oauth2/token")
     assert calls[1].headers["authorization"] == "Bearer test-token"
+    assert "children" not in dict(calls[1].url.params)
+    assert calls[1].url.params["currencyCode"] == "EGP"
     client.close()
