@@ -5,7 +5,18 @@ endpoints, automate searches, or extract third-party fares.
 """
 from __future__ import annotations
 
-from PySide6.QtCore import QUrl
+# Older/integrated GPUs may not support the EGL/OpenGL context requested by
+# Chromium inside Qt WebEngine. Configure software rendering before importing
+# Qt WebEngine or constructing QApplication.
+import os
+
+os.environ.setdefault(
+    "QTWEBENGINE_CHROMIUM_FLAGS",
+    "--disable-gpu --disable-gpu-compositing",
+)
+os.environ.setdefault("QT_OPENGL", "software")
+
+from PySide6.QtCore import Qt, QUrl
 from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import (
     QApplication,
@@ -201,6 +212,8 @@ class BrowserWindow(QMainWindow):
 
 
 def main():
+    # This attribute must be set before QApplication is created.
+    QApplication.setAttribute(Qt.ApplicationAttribute.AA_UseSoftwareOpenGL)
     app = QApplication.instance() or QApplication([])
     app.setApplicationName("Flight Hunter AI")
     window = BrowserWindow()
