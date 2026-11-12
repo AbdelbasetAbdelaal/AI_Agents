@@ -1,4 +1,5 @@
 from datetime import date, timedelta
+import os
 
 import streamlit as st
 from pydantic import ValidationError
@@ -7,6 +8,7 @@ from flight_hunter.airports import AIRPORTS, AIRPORT_LABELS
 from flight_hunter.models import FlightSearchRequest
 from flight_hunter.fare_results import fare_age_label, filter_fares, parse_fare_csv
 from flight_hunter.sources import SOURCES, build_google_flights_url, sources_by_category
+from flight_hunter.serpapi_flights import FlightSearchError, search_google_flights
 
 st.set_page_config(
     page_title="Flight Hunter AI | البحث عن الرحلات",
@@ -115,6 +117,58 @@ if st.session_state.get("search_submitted"):
     st.caption(f"{route} · {date_text} · {request.adults} بالغ · {request.children} طفل · العملة المفضلة: {request.currency}")
 
     st.success("تم تجهيز البحث. جدول المقارنة يعرض فقط عروض الأسعار الفعلية التي تم تحميلها والتحقق من بياناتها.")
+    st.markdown('<div class="section-title">الوكيل الذكي للبحث عن الرحلات</div>', unsafe_allow_html=True)
+    st.write("يبحث الوكيل الآن عبر Google Flights باستخدام SerpApi، ثم يرتب العروض حسب السعر ويعرض وقت التحقق ومعلومات الرحلة المتاحة.")
+    api_key = st.text_input(
+        "مفتاح SerpApi المجاني",
+        value=os.getenv("SERPAPI_API_KEY", ""),
+        type="password",
+        help="أنشئ حسابًا مجانيًا في SerpApi وانسخ المفتاح من لوحة التحكم. لا تضع المفتاح في GitHub.",
+        key="serpapi_key_input",
+    )
+    if st.button("ابدأ البحث الفعلي الآن", type="primary", use_container_width=True):
+        try:
+            with st.spinner("الوكيل يبحث عن الرحلات ويحلل النتائج..."):
+                live_result = search_google_flights(
+                    api_key=api_key,
+                    origin=request.origin,
+                    destination=request.destination,
+                    departure_date=request.departure_date.isoformat(),
+                    return_date=request.return_date.isoformat() if request.return_date else None,
+                    adults=request.adults,
+                    children=request.children,
+                    currency=request.currency,
+                )
+            st.session_state["live_flight_result"] = live_result
+            st.session_state["live_flight_query"] = request.model_dump(mode="json")
+        except FlightSearchError as exc:
+            st.error(str(exc))
+        except Exception:
+            st.error("حدث خطأ غير متوقع أثناء البحث. لم يتم عرض نتائج غير مؤكدة.")
+    live_result = st.session_state.get("live_flight_result")
+    if live_result and st.session_state.get("live_flight_query") == request.model_dump(mode="json"):
+        offers = live_result.get("offers", [])
+        st.caption(f"المصدر: {live_result['source']} · وقت التحقق: {live_result['checked_at']} · نوع الرحلة: {live_result['trip_type']}")
+        if offers:
+            st.metric("عدد العروض المسترجعة", len(offers))
+            st.metric("أقل سعر ظهر في النتائج", f"{offers[0]['price']:,.0f} {offers[0]['currency']}")
+            rows = [{
+                "شركة الطيران": x["airline"],
+                "المغادرة": x["departure_at"],
+                "الوصول": x["arrival_at"],
+                "السعر المعروض": x["price"],
+                "العملة": x["currency"],
+                "التوقفات": x["stops"],
+                "المدة بالدقائق": x["duration_minutes"],
+                "الأمتعة / الملاحظات": x["baggage_summary"],
+                "رقم الرحلة": x["flight_numbers"],
+            } for x in offers]
+            st.dataframe(rows, use_container_width=True, hide_index=True)
+            st.info("هذه نتائج بحث فعلية من Google Flights عبر SerpApi. أسعار الذهاب والعودة تمثل سعر الرحلة كما أعاده المصدر، لكن تفاصيل رحلة العودة قد تحتاج فتح خيار الرحلة للتحقق منها. الأمتعة وشروط السعر قد تختلف حسب شركة الطيران ومقدم الحجز؛ تحقق منها قبل الشراء.")
+            st.link_button("فتح Google Flights للتحقق والحجز", build_google_flights_url(request), use_container_width=True)
+        else:
+            st.warning("لم يُرجع المصدر عروضًا مطابقة. جرّب تاريخًا آخر أو تحقق من رموز المطارات.")
+    st.caption("الحصة المجانية المعلنة من SerpApi هي 250 عملية بحث شهريًا. قد يختلف الحد أو التوافر حسب حالة الحساب؛ راجع لوحة حسابك.")
     st.link_button("ابحث عن هذه الرحلة في Google Flights", build_google_flights_url(request), type="primary", use_container_width=True)
 
     st.markdown('<div class="section-title">مقارنة الأسعار الفعلية</div>', unsafe_allow_html=True)
