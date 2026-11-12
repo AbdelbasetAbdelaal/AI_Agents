@@ -22,11 +22,13 @@ SOURCES = [
     FlightSource("طيران ناس", "شركات سعودية", "https://www.flynas.com/", "الموقع الرسمي"),
     FlightSource("طيران أديل", "شركات سعودية", "https://www.flyadeal.com/", "الموقع الرسمي"),
     FlightSource("طيران الرياض", "شركات سعودية", "https://www.riyadhair.com/", "الموقع الرسمي"),
-    FlightSource("ويجو مصر", "مواقع مقارنة", "https://eg.wego.com/", "مقارنة خيارات السفر في مصر"),
-    FlightSource("ويجو السعودية", "مواقع مقارنة", "https://sa.wego.com/", "مقارنة خيارات السفر في السعودية"),
+    FlightSource("ويجو مصر", "مواقع مقارنة", "https://eg.wego.com/", "بحث يدوي فقط؛ شروط الاستخدام تمنع الاستعلامات الآلية"),
+    FlightSource("ويجو السعودية", "مواقع مقارنة", "https://sa.wego.com/", "بحث يدوي فقط؛ شروط الاستخدام تمنع الاستعلامات الآلية"),
     FlightSource("المسافر مصر", "مواقع مقارنة", "https://eg.almosafer.com/", "مقارنة خيارات السفر في مصر"),
     FlightSource("المسافر السعودية", "مواقع مقارنة", "https://sa.almosafer.com/", "مقارنة خيارات السفر في السعودية"),
     FlightSource("الرحلة", "مواقع مقارنة", "https://www.alrehlah.com/", "منصة سفر سعودية"),
+    FlightSource("وينجي مصر", "مواقع مقارنة", "https://eg.wingie.com/", "بحث يدوي فقط؛ شروط الاستخدام تمنع جمع الأسعار آلياً"),
+    FlightSource("وينجي السعودية", "مواقع مقارنة", "https://sa.wingie.com/", "بحث يدوي فقط؛ شروط الاستخدام تمنع جمع الأسعار آلياً"),
     FlightSource("Google Flights", "مواقع مقارنة", "https://www.google.com/travel/flights", "بحث خارجي"),
 ]
 
