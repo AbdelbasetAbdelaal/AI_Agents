@@ -1,6 +1,4 @@
-"""Airport choices for the initial Egypt-focused search experience."""
-
-# Labels use verified IATA airport codes.
+"""Airport catalog covering Egypt, Saudi Arabia, and common destinations."""
 AIRPORTS = {
     "القاهرة — CAI": "CAI",
     "سفنكس — SPX": "SPX",
@@ -12,6 +10,21 @@ AIRPORTS = {
     "مرسى علم — RMF": "RMF",
     "مرسى مطروح — MUH": "MUH",
     "طابا — TCP": "TCP",
+    "جدة — JED": "JED",
+    "المدينة المنورة — MED": "MED",
+    "الرياض — RUH": "RUH",
+    "الدمام — DMM": "DMM",
+    "أبها — AHB": "AHB",
+    "الطائف — TIF": "TIF",
+    "تبوك — TUU": "TUU",
+    "جازان — GIZ": "GIZ",
+    "القصيم — ELQ": "ELQ",
+    "نيوم — NUM": "NUM",
+    "دبي — DXB": "DXB",
+    "أبوظبي — AUH": "AUH",
+    "الدوحة — DOH": "DOH",
+    "إسطنبول — IST": "IST",
+    "لندن — LHR": "LHR",
+    "باريس — CDG": "CDG",
 }
-
 AIRPORT_LABELS = list(AIRPORTS)
