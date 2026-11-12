@@ -32,5 +32,7 @@ class FlightOffer(BaseModel):
     currency: str = "EGP"
     stops: int = Field(ge=0)
     duration_minutes: int = Field(gt=0)
-    booking_url: str
+    booking_url: str | None = None
     baggage_summary: str | None = None
+    offer_id: str | None = None
+    itinerary_details: list[dict] = Field(default_factory=list)
