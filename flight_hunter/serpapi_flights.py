@@ -140,6 +140,7 @@ def search_google_flights(
         "hl": language,
         "sort_by": "2",
         "show_hidden": "true",
+        "deep_search": "true",
     }
     if return_date:
         params["return_date"] = return_date
@@ -239,6 +240,7 @@ def search_google_flights(
         "outbound_candidates_found": len(outbound_items),
         "return_searches_performed": follow_up_searches,
         "airline_filter": None,
+        "unique_airlines": sorted({name.strip() for offer in offers for name in offer.get("airline", "").split("/") if name.strip()}),
         "coverage_note": "لم يتم تقييد شركات الطيران؛ النتائج تشمل الشركات التي أعادها Google Flights لهذا المسار والتاريخ، وليست ضمانًا لتغطية كل شركة أو كل مخزون السوق.",
         "round_trip_note": (
             f"تم طلب خيارات العودة لما يصل إلى {MAX_ROUND_TRIP_OUTBOUNDS} من رحلات الذهاب؛ "
