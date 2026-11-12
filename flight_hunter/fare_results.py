@@ -20,6 +20,8 @@ class FareRecord(BaseModel):
     destination: str = Field(min_length=3, max_length=3)
     departure_at: str
     arrival_at: str
+    return_departure_at: str = ""
+    passengers: int = Field(default=1, ge=1, le=17)
     cabin_class: str
     price: float = Field(gt=0)
     currency: str = Field(min_length=3, max_length=3)
