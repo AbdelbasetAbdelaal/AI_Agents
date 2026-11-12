@@ -1,0 +1,9 @@
+[project]
+name = "flight-hunter-ai"
+version = "0.1.0"
+description = "Arabic-first flight price comparison assistant focused on Egypt."
+requires-python = ">=3.11"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
