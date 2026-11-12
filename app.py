@@ -6,6 +6,8 @@ from pydantic import ValidationError
 from config.settings import get_settings
 from flight_hunter.airports import AIRPORTS, AIRPORT_LABELS
 from flight_hunter.models import FlightSearchRequest
+from flight_hunter.amadeus import AmadeusClient, AmadeusError
+from flight_hunter.ranking import rank_offers
 
 st.set_page_config(
     page_title="Flight Hunter AI | البحث عن الرحلات",
@@ -141,38 +143,64 @@ if submitted:
         st.error("يرجى مراجعة بيانات الرحلة: " + "؛ ".join(error["msg"] for error in exc.errors()))
 
 if st.session_state.get("search_submitted"):
-    request = st.session_state["flight_search_request"]
-    st.markdown('<div class="section-title">نتائج البحث</div>', unsafe_allow_html=True)
+    request_data = st.session_state["flight_search_request"]
+    st.markdown('<div class="section-title">نتائج البحث المباشرة</div>', unsafe_allow_html=True)
     st.caption(
-        f'{request["origin"]} ← {request["destination"]}  ·  '
-        f'{request["departure_date"]}  ·  '
-        f'{"عودة " + request["return_date"] if request["return_date"] else "ذهاب فقط"}  ·  '
-        f'{request["adults"]} بالغ / {request["children"]} طفل'
+        f'{request_data["origin"]} ← {request_data["destination"]}  ·  '
+        f'{request_data["departure_date"]}  ·  '
+        f'{"عودة " + request_data["return_date"] if request_data["return_date"] else "ذهاب فقط"}  ·  '
+        f'{request_data["adults"]} بالغ / {request_data["children"]} طفل'
     )
-    st.markdown(
-        """
-        <div class="empty-state">
-          <div class="plane">🛫</div>
-          <h3>واجهة البحث جاهزة — ربط الأسعار في المرحلة التالية</h3>
-          <p>لم يتم جلب عروض مباشرة بعد. سنعرض هنا الرحلات المتاحة وأسعارها الحقيقية
-          فور ربط مزودي بيانات الطيران في المرحلة الثالثة.</p>
-          <p class="muted">لن نستخدم أسعارًا تجريبية أو نعرض بيانات غير مؤكدة على أنها أسعار فعلية.</p>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    if not settings.amadeus_client_id or not settings.amadeus_client_secret:
+        st.warning("تكامل Amadeus جاهز، لكن مفاتيح API غير مضبوطة. انسخ .env.example إلى .env وأدخل بيانات الاعتماد.")
+        st.info("راجع docs/AMADEUS.md. لا تضع مفاتيح API داخل ملفات GitHub.")
+    else:
+        try:
+            search_request = FlightSearchRequest.model_validate(request_data)
+            with st.spinner("نتصل بـ Amadeus ونبحث عن عروض متاحة..."):
+                client = AmadeusClient(settings)
+                try:
+                    offers = rank_offers(client.search(search_request))
+                finally:
+                    client.close()
+            if not offers:
+                st.info("لم يُرجع مزود البيانات عروضاً لهذا المسار والتاريخ. جرّب تاريخاً أو مساراً آخر، أو تحقق من بيئة API.")
+            else:
+                st.success(f"تم استلام {len(offers)} عرضاً من Amadeus.")
+                sort_mode = st.selectbox("ترتيب النتائج", ["الأقل سعراً", "الأقصر مدة", "الأقل توقفاً"], key="offer_sort_mode")
+                if sort_mode == "الأقصر مدة":
+                    offers = sorted(offers, key=lambda item: (item.duration_minutes, item.price))
+                elif sort_mode == "الأقل توقفاً":
+                    offers = sorted(offers, key=lambda item: (item.stops, item.price))
+                max_price = st.slider("الحد الأقصى للسعر", min_value=0.0, max_value=float(max(item.price for item in offers)), value=float(max(item.price for item in offers)), step=100.0, key="offer_max_price")
+                visible_offers = [item for item in offers if item.price <= max_price]
+                for offer in visible_offers:
+                    with st.container(border=True):
+                        top = st.columns([2, 2, 1])
+                        top[0].markdown("**" + offer.airline + "**")
+                        top[1].markdown("**" + offer.origin + " → " + offer.destination + "**")
+                        top[2].markdown("**" + format(offer.price, ",.2f") + " " + offer.currency + "**")
+                        st.caption("المغادرة: " + offer.departure_at.replace("T", " ") + "  ·  الوصول: " + offer.arrival_at.replace("T", " "))
+                        st.caption("مدة الذهاب: " + str(offer.duration_minutes // 60) + " ساعة " + str(offer.duration_minutes % 60) + " دقيقة  ·  التوقفات: " + str(offer.stops) + "  ·  المصدر: " + offer.provider)
+                        if offer.baggage_summary:
+                            st.caption("الأمتعة المشمولة حسب بيانات المزود: " + offer.baggage_summary)
+                        for leg in offer.itinerary_details:
+                            st.caption(leg.get("direction", "الرحلة") + ": " + leg.get("from", "") + " → " + leg.get("to", "") + "  ·  " + leg.get("airlines", "") + "  ·  " + str(leg.get("stops", 0)) + " توقف")
+                        st.caption("السعر كما أعاده المزود وقت البحث وقد يتغير. لم يوفر هذا العرض رابط حجز مباشر؛ لا نختلق روابط للحجز.")
+                if not visible_offers:
+                    st.info("لا توجد عروض ضمن الحد الأقصى للسعر المحدد.")
+        except AmadeusError as exc:
+            st.error(str(exc))
+        except ValidationError as exc:
+            st.error("بيانات البحث غير صالحة: " + "؛ ".join(error["msg"] for error in exc.errors()))
+        except Exception:
+            st.error("حدث خطأ غير متوقع أثناء البحث. راجع إعدادات التشغيل دون مشاركة مفاتيح API.")
+
 else:
-    st.markdown(
-        """
-        <div class="empty-state">
-          <div class="plane">🌍</div>
-          <h3>إلى أين تريد السفر؟</h3>
-          <p>أدخل تفاصيل رحلتك أعلاه، ثم اضغط على «ابحث عن أفضل الرحلات».</p>
-          <p class="muted">ستظهر نتائج المقارنة هنا بعد تفعيل مصادر الأسعار المباشرة.</p>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    st.markdown("""
+    <div class="empty-state"><div class="plane">🌍</div><h3>إلى أين تريد السفر؟</h3>
+    <p>أدخل تفاصيل رحلتك أعلاه، ثم اضغط على «ابحث عن أفضل الرحلات».</p></div>
+    """, unsafe_allow_html=True)
 
 with st.expander("كيف نختار أفضل رحلة؟", expanded=False):
     st.write(
@@ -182,8 +210,7 @@ with st.expander("كيف نختار أفضل رحلة؟", expanded=False):
     )
 
 st.markdown(
-    '<div class="trust">🔒 شفافية الأسعار: لا توجد حاليًا نتائج مباشرة متصلة. '
-    'لن يظهر سعر إلا بعد استلامه من مزود بيانات موثوق.</div>',
+    '<div class="trust">🔒 شفافية الأسعار: الأسعار المعروضة تأتي من Amadeus عند ضبط مفاتيح API. تحقق من السعر النهائي قبل الدفع.</div>',
     unsafe_allow_html=True,
 )
 st.divider()
