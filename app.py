@@ -107,7 +107,7 @@ if submitted:
 if st.session_state.get("search_submitted"):
     request = FlightSearchRequest.model_validate(st.session_state["flight_search_request"])
     st.markdown('<div class="section-title">مصادر البحث المناسبة لرحلتك</div>', unsafe_allow_html=True)
-    route = f"{request.origin} ← {request.destination}"
+    route = f"{request.origin} → {request.destination}"
     date_text = request.departure_date.strftime("%d/%m/%Y")
     if request.return_date:
         date_text += " · عودة " + request.return_date.strftime("%d/%m/%Y")
