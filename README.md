@@ -38,3 +38,27 @@
 ```powershell
 pytest -q
 ```
+
+
+## متصفح سطح المكتب (Qt WebEngine)
+
+أُضيف مشغّل اختياري بنافذة سطح مكتب مستقلة مع تبويبات وشريط عنوان وأزرار رجوع/تقدم/تحديث وصفحة بداية تحتوي على روابط مواقع الطيران. يظل تطبيق Streamlit الحالي كما هو ويمكن تشغيله بصورة مستقلة.
+
+لتثبيت مكونات سطح المكتب على Windows:
+
+```powershell
+py -3.11 -m venv .venv
+.venv\\Scripts\\Activate.ps1
+python -m pip install --upgrade pip
+pip install -r requirements-desktop.txt
+python run_desktop.py
+```
+
+لتشغيل واجهة Streamlit المعتادة:
+
+```powershell
+pip install -r requirements.txt
+streamlit run app.py
+```
+
+ملاحظة: تثبيت `requirements-desktop.txt` يضيف PySide6 وQt WebEngine وقد يستغرق وقتاً ومساحة أكبر من نسخة Streamlit. المتصفح مخصص لتصفح المستخدم بنفسه؛ لا يقرأ DOM ولا يستخرج أسعاراً ولا يستدعي واجهات داخلية ولا ينفذ استعلامات آلية. قد تمنع بعض المواقع العرض داخل WebEngine؛ عندها يمكن فتح الموقع في متصفح عادي خارج التطبيق. لم يتم دمج أي بيانات أسعار حية تلقائياً.
